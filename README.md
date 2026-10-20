@@ -27,8 +27,7 @@ Gradle:
 
 ```groovy
 repositories {
-    maven { url = 'https://maven.ricodevvv.com/snapshots' }
-    maven { url = 'https://maven.ricodevvv.com/releases' }
+    maven { url = 'https://maven.ricodevvv.com/public-repo' }
 }
 
 dependencies {
@@ -44,7 +43,7 @@ Maven:
 <repositories>
   <repository>
     <id>ricodevvv</id>
-    <url>https://maven.ricodevvv.com/snapshots</url>
+    <url>https://maven.ricodevvv.com/public-repo</url>
   </repository>
 </repositories>
 
