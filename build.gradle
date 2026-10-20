@@ -1,0 +1,80 @@
+allprojects {
+    group = 'dev.ricodevvv'
+    version = '1.0.0-SNAPSHOT'
+}
+
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+
+    repositories {
+        mavenCentral()
+
+        maven {
+            name = 'spigotmc'
+            url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
+        }
+
+        maven {
+            name = 'codemc-nms'
+            url = 'https://repo.codemc.io/repository/nms/'
+        }
+
+        maven {
+            name = 'placeholderapi'
+            url = 'https://repo.extendedclip.com/releases/'
+        }
+
+        maven {
+            name = 'slimeworldmanager'
+            url = 'https://repo.glaremasters.me/repository/concuncan/'
+        }
+    }
+
+    dependencies {
+        compileOnly 'org.spigotmc:spigot:1.8.8-R0.1-SNAPSHOT'
+
+        testImplementation 'org.spigotmc:spigot:1.8.8-R0.1-SNAPSHOT'
+        testImplementation platform('org.junit:junit-bom:5.10.2')
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+
+    java {
+        withSourcesJar()
+        withJavadocJar()
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = 8
+        options.compilerArgs += ['-Xlint:-options']
+    }
+
+    tasks.withType(Javadoc).configureEach {
+        options.encoding = 'UTF-8'
+        options.addStringOption('Xdoclint:none', '-quiet')
+        options.addStringOption('charset', 'UTF-8')
+        failOnError = false
+    }
+
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                from components.java
+            }
+        }
+
+        repositories {
+            maven {
+                name = 'reposilite'
+                url = uri("https://maven.ricodevvv.com/${version.toString().endsWith('SNAPSHOT') ? 'snapshots' : 'releases'}")
+                credentials(PasswordCredentials)
+            }
+        }
+    }
+}

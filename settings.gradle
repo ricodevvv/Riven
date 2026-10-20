@@ -1,0 +1,11 @@
+rootProject.name = 'Riven'
+
+include 'core'
+include 'game'
+include 'data'
+include 'network'
+
+project(':core').name = 'riven-core'
+project(':game').name = 'riven-game'
+project(':data').name = 'riven-data'
+project(':network').name = 'riven-network'

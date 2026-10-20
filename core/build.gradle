@@ -1,0 +1,5 @@
+description = 'Riven core: items, menus, scoreboards, holograms, NPCs, packets, commands, config, languages, parties and placeholders.'
+
+dependencies {
+    compileOnly 'me.clip:placeholderapi:2.11.6'
+}

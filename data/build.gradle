@@ -1,0 +1,8 @@
+description = 'Riven data layer: SQL and YAML storage, player profiles, economy, statistics, levels and leaderboards.'
+
+dependencies {
+    api project(':riven-core')
+
+    api 'com.zaxxer:HikariCP:4.0.3'
+    implementation 'org.mariadb.jdbc:mariadb-java-client:2.7.12'
+}

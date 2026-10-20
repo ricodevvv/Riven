@@ -1,0 +1,8 @@
+description = 'Riven network layer: Redis messaging, server registry, player transfers, load balancing and network parties.'
+
+dependencies {
+    api project(':riven-core')
+    api project(':riven-game')
+
+    api 'redis.clients:jedis:3.10.0'
+}

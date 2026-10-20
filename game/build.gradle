@@ -1,0 +1,9 @@
+description = 'Riven game engine: multi-arena games, teams, protocols, timers, worlds, setup, votes, kits, loot and signs.'
+
+dependencies {
+    api project(':riven-core')
+
+    compileOnly('com.grinderwolf:slimeworldmanager-api:2.2.1') {
+        transitive = false
+    }
+}
