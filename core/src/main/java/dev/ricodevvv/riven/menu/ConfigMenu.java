@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -148,6 +149,10 @@ public class ConfigMenu extends GameInventory {
                 lore.add(this.registry.text(this.owner, this.context, line));
             }
             meta.setLore(lore);
+        }
+
+        if (meta instanceof SkullMeta && ((SkullMeta) meta).hasOwner() && ((SkullMeta) meta).getOwner().indexOf('%') != -1) {
+            ((SkullMeta) meta).setOwner(this.registry.text(this.owner, this.context, ((SkullMeta) meta).getOwner()));
         }
 
         item.setItemMeta(meta);
