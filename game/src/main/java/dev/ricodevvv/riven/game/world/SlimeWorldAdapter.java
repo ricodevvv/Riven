@@ -131,6 +131,11 @@ public class SlimeWorldAdapter implements WorldAdapter {
     }
 
     @Override
+    public String getSetupWorldName(String mapName) {
+        return mapName;
+    }
+
+    @Override
     public void loadSetupWorld(String mapName, Consumer<World> callback) {
         final World loaded = Bukkit.getWorld(mapName);
 
@@ -193,11 +198,7 @@ public class SlimeWorldAdapter implements WorldAdapter {
 
     @Override
     public void importWorld(String worldName, String mapName, Runnable callback) {
-        final World world = Bukkit.getWorld(worldName);
-
-        if (world != null) {
-            world.save();
-        }
+        final Runnable restore = LiveWorlds.release(this.plugin, worldName);
 
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             final File temp = new File(this.plugin.getDataFolder(), "slime-import/" + mapName);
@@ -220,7 +221,10 @@ public class SlimeWorldAdapter implements WorldAdapter {
                 }
             }
 
-            Bukkit.getScheduler().runTask(this.plugin, callback);
+            Bukkit.getScheduler().runTask(this.plugin, () -> {
+                restore.run();
+                callback.run();
+            });
         });
     }
 

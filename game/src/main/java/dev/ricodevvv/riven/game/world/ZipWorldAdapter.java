@@ -64,11 +64,7 @@ public class ZipWorldAdapter implements WorldAdapter {
 
     @Override
     public void loadArenaWorld(String mapName, String worldName, Consumer<World> callback) {
-        final World loadedTemplate = Bukkit.getWorld(mapName);
-
-        if (loadedTemplate != null && !this.template(mapName).exists()) {
-            loadedTemplate.save();
-        }
+        final Runnable restore = this.template(mapName).exists() ? () -> {} : LiveWorlds.release(this.plugin, mapName);
 
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             try {
@@ -77,7 +73,11 @@ public class ZipWorldAdapter implements WorldAdapter {
                         throw new IOException("There's no template or folder for map " + mapName);
                     }
 
-                    WorldFiles.zip(this.worldFolder(mapName), this.template(mapName));
+                    try {
+                        WorldFiles.zip(this.worldFolder(mapName), this.template(mapName));
+                    } finally {
+                        Bukkit.getScheduler().runTask(this.plugin, restore);
+                    }
                 }
 
                 final File target = this.worldFolder(worldName);
@@ -121,6 +121,8 @@ public class ZipWorldAdapter implements WorldAdapter {
     }
 
     private void deleteFolder(String worldName) {
+        LiveWorlds.flush();
+
         try {
             WorldFiles.delete(this.worldFolder(worldName));
         } catch (IOException e) {
@@ -129,8 +131,14 @@ public class ZipWorldAdapter implements WorldAdapter {
     }
 
     @Override
+    public String getSetupWorldName(String mapName) {
+        return this.tempPrefix + "edit_" + mapName;
+    }
+
+    @Override
     public void loadSetupWorld(String mapName, Consumer<World> callback) {
-        final World loaded = Bukkit.getWorld(mapName);
+        final String worldName = this.getSetupWorldName(mapName);
+        final World loaded = Bukkit.getWorld(worldName);
 
         if (loaded != null) {
             callback.accept(loaded);
@@ -139,35 +147,44 @@ public class ZipWorldAdapter implements WorldAdapter {
 
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             try {
+                WorldFiles.delete(this.worldFolder(worldName));
+
                 if (this.template(mapName).exists()) {
-                    WorldFiles.delete(this.worldFolder(mapName));
-                    WorldFiles.unzip(this.template(mapName), this.worldFolder(mapName));
+                    WorldFiles.unzip(this.template(mapName), this.worldFolder(worldName));
                 }
 
-                this.deleteTrash(mapName);
+                this.deleteTrash(worldName);
             } catch (IOException e) {
                 this.plugin.getLogger().log(Level.SEVERE, "Couldn't open map " + mapName, e);
             }
 
-            Bukkit.getScheduler().runTask(this.plugin, () -> callback.accept(this.createWorld(mapName, true)));
+            Bukkit.getScheduler().runTask(this.plugin, () -> callback.accept(this.createWorld(worldName, true)));
         });
     }
 
     @Override
     public void saveSetupWorld(String mapName, Runnable callback) {
-        final World world = Bukkit.getWorld(mapName);
+        final String worldName = this.getSetupWorldName(mapName);
+        final World world = Bukkit.getWorld(worldName);
 
         if (world != null) {
             world.save();
+            LiveWorlds.flush();
 
             if (!Bukkit.unloadWorld(world, true)) {
                 this.plugin.getLogger().warning("Couldn't unload map " + mapName + " before saving it");
             }
+
+            LiveWorlds.flush();
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             try {
-                WorldFiles.zip(this.worldFolder(mapName), this.template(mapName));
+                if (new File(this.worldFolder(worldName), "region").exists()) {
+                    WorldFiles.zip(this.worldFolder(worldName), this.template(mapName));
+                }
+
+                WorldFiles.delete(this.worldFolder(worldName));
             } catch (IOException e) {
                 this.plugin.getLogger().log(Level.SEVERE, "Couldn't save the template of " + mapName, e);
             }
@@ -178,11 +195,7 @@ public class ZipWorldAdapter implements WorldAdapter {
 
     @Override
     public void importWorld(String worldName, String mapName, Runnable callback) {
-        final World world = Bukkit.getWorld(worldName);
-
-        if (world != null) {
-            world.save();
-        }
+        final Runnable restore = LiveWorlds.release(this.plugin, worldName);
 
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             try {
@@ -191,7 +204,10 @@ public class ZipWorldAdapter implements WorldAdapter {
                 this.plugin.getLogger().log(Level.SEVERE, "Couldn't import world " + worldName, e);
             }
 
-            Bukkit.getScheduler().runTask(this.plugin, callback);
+            Bukkit.getScheduler().runTask(this.plugin, () -> {
+                restore.run();
+                callback.run();
+            });
         });
     }
 
@@ -202,7 +218,8 @@ public class ZipWorldAdapter implements WorldAdapter {
 
     @Override
     public void deleteMap(String mapName) {
-        final World world = Bukkit.getWorld(mapName);
+        final String worldName = this.getSetupWorldName(mapName);
+        final World world = Bukkit.getWorld(worldName);
 
         if (world != null) {
             Bukkit.unloadWorld(world, false);
@@ -214,9 +231,9 @@ public class ZipWorldAdapter implements WorldAdapter {
 
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             try {
-                WorldFiles.delete(this.worldFolder(mapName));
+                WorldFiles.delete(this.worldFolder(worldName));
             } catch (IOException e) {
-                this.plugin.getLogger().log(Level.WARNING, "Couldn't delete the folder of " + mapName, e);
+                this.plugin.getLogger().log(Level.WARNING, "Couldn't delete the edit copy of " + mapName, e);
             }
         });
     }

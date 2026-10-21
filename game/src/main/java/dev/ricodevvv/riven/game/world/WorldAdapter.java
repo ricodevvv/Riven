@@ -29,7 +29,16 @@ public interface WorldAdapter {
     void unloadArenaWorld(String worldName);
 
     /**
-     * Opens the original map to edit it. Creates an empty one if it doesn't exist.
+     * The world admins edit a map in. It's never the world the map was imported from, so editing or deleting a
+     * map can't touch the original.
+     *
+     * @param mapName map name
+     * @return world name of the edit copy
+     */
+    String getSetupWorldName(String mapName);
+
+    /**
+     * Opens the edit copy of a map (fresh from its template). Creates an empty one if there is no template.
      *
      * @param mapName map name
      * @param callback gets the world, on the main thread
@@ -45,7 +54,8 @@ public interface WorldAdapter {
     void saveSetupWorld(String mapName, Runnable callback);
 
     /**
-     * Takes a world already on the server and saves it as a map template.
+     * Takes a world already on the server and saves it as a map template. A loaded world gets unloaded for a
+     * moment so the copy isn't broken, players inside wait in the main world and come back.
      *
      * @param worldName source world
      * @param mapName map name
@@ -60,7 +70,7 @@ public interface WorldAdapter {
     boolean exists(String mapName);
 
     /**
-     * Deletes a map's template.
+     * Deletes a map's template and its edit copy. The world it was imported from stays.
      *
      * @param mapName map name
      */
