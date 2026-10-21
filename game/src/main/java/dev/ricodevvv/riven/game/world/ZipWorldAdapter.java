@@ -1,6 +1,7 @@
 package dev.ricodevvv.riven.game.world;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -132,13 +133,16 @@ public class ZipWorldAdapter implements WorldAdapter {
 
     @Override
     public String getSetupWorldName(String mapName) {
-        return this.tempPrefix + "edit_" + mapName;
+        return mapName;
     }
 
+    /**
+     * Opens the world of a map, the one with its name in the server folder. If the folder isn't there it comes
+     * back from the template, and if there's no template either you get an empty world to build in.
+     */
     @Override
     public void loadSetupWorld(String mapName, Consumer<World> callback) {
-        final String worldName = this.getSetupWorldName(mapName);
-        final World loaded = Bukkit.getWorld(worldName);
+        final World loaded = Bukkit.getWorld(mapName);
 
         if (loaded != null) {
             callback.accept(loaded);
@@ -147,44 +151,45 @@ public class ZipWorldAdapter implements WorldAdapter {
 
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             try {
-                WorldFiles.delete(this.worldFolder(worldName));
-
-                if (this.template(mapName).exists()) {
-                    WorldFiles.unzip(this.template(mapName), this.worldFolder(worldName));
+                if (!this.hasWorldFiles(mapName) && this.template(mapName).exists()) {
+                    WorldFiles.unzip(this.template(mapName), this.worldFolder(mapName));
                 }
 
-                this.deleteTrash(worldName);
+                this.deleteTrash(mapName);
             } catch (IOException e) {
                 this.plugin.getLogger().log(Level.SEVERE, "Couldn't open map " + mapName, e);
             }
 
-            Bukkit.getScheduler().runTask(this.plugin, () -> callback.accept(this.createWorld(worldName, true)));
+            Bukkit.getScheduler().runTask(this.plugin, () -> {
+                final World world = this.createWorld(mapName, true);
+
+                if (world != null && world.getHighestBlockYAt(world.getSpawnLocation()) <= 0) {
+                    world.setSpawnLocation(0, 64, 0);
+                    world.getBlockAt(0, 63, 0).setType(Material.GLASS);
+                }
+
+                callback.accept(world);
+            });
         });
     }
 
+    private boolean hasWorldFiles(String worldName) {
+        return new File(this.worldFolder(worldName), "level.dat").exists() || new File(this.worldFolder(worldName), "region").exists();
+    }
+
+    /**
+     * Saves the map's world as its template. The world gets unloaded first so the copy isn't broken, and the
+     * folder stays where it is.
+     */
     @Override
     public void saveSetupWorld(String mapName, Runnable callback) {
-        final String worldName = this.getSetupWorldName(mapName);
-        final World world = Bukkit.getWorld(worldName);
-
-        if (world != null) {
-            world.save();
-            LiveWorlds.flush();
-
-            if (!Bukkit.unloadWorld(world, true)) {
-                this.plugin.getLogger().warning("Couldn't unload map " + mapName + " before saving it");
-            }
-
-            LiveWorlds.flush();
-        }
+        LiveWorlds.release(this.plugin, mapName);
 
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             try {
-                if (new File(this.worldFolder(worldName), "region").exists()) {
-                    WorldFiles.zip(this.worldFolder(worldName), this.template(mapName));
+                if (this.hasWorldFiles(mapName)) {
+                    WorldFiles.zip(this.worldFolder(mapName), this.template(mapName));
                 }
-
-                WorldFiles.delete(this.worldFolder(worldName));
             } catch (IOException e) {
                 this.plugin.getLogger().log(Level.SEVERE, "Couldn't save the template of " + mapName, e);
             }
@@ -216,26 +221,14 @@ public class ZipWorldAdapter implements WorldAdapter {
         return this.template(mapName).exists() || new File(this.worldFolder(mapName), "region").exists();
     }
 
+    /**
+     * Deletes the template of a map. Its world folder stays, it's your build after all.
+     */
     @Override
     public void deleteMap(String mapName) {
-        final String worldName = this.getSetupWorldName(mapName);
-        final World world = Bukkit.getWorld(worldName);
-
-        if (world != null) {
-            Bukkit.unloadWorld(world, false);
-        }
-
         if (this.template(mapName).exists() && !this.template(mapName).delete()) {
             this.plugin.getLogger().warning("Couldn't delete the template of " + mapName);
         }
-
-        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
-            try {
-                WorldFiles.delete(this.worldFolder(worldName));
-            } catch (IOException e) {
-                this.plugin.getLogger().log(Level.WARNING, "Couldn't delete the edit copy of " + mapName, e);
-            }
-        });
     }
 
     @Override
