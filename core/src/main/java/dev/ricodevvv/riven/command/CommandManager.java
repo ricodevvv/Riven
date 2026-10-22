@@ -1,6 +1,7 @@
 package dev.ricodevvv.riven.command;
 
 import dev.ricodevvv.riven.language.LanguageManager;
+import dev.ricodevvv.riven.text.FancyMessage;
 import dev.ricodevvv.riven.util.Reflection;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -68,7 +69,7 @@ public class CommandManager {
         try {
             command.dispatch(new CommandContext(sender, label, args, this.language));
         } catch (CommandException e) {
-            sender.sendMessage(e.getMessage());
+            FancyMessage.sendAuto(sender, e.getMessage());
         } catch (Exception e) {
             sender.sendMessage(ChatColor.RED + "Something went wrong running that command. Check the console.");
             this.plugin.getLogger().log(Level.SEVERE, "Error running /" + label, e);

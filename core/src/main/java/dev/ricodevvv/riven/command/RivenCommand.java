@@ -1,5 +1,6 @@
 package dev.ricodevvv.riven.command;
 
+import dev.ricodevvv.riven.util.TextUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -115,9 +116,10 @@ public abstract class RivenCommand {
         }
 
         if (context.size() < this.minArgs) {
-            throw new CommandException(context.message("riven.command.usage", "&cUsage: /%command% %usage%")
+            throw new CommandException("{{" + clickable(context.message("riven.command.usage", "&cUsage: /%command% %usage%")
                     .replace("%command%", context.getLabel())
-                    .replace("%usage%", this.usage));
+                    .replace("%usage%", this.usage)) + "|suggest:/" + context.getLabel() + " |hover:"
+                    + clickable(context.message("riven.command.help-click", "&eClick to use it")) + "}}");
         }
 
         this.execute(context);
@@ -171,10 +173,23 @@ public abstract class RivenCommand {
         context.reply(context.message("riven.command.help-header", "&8&m-----&r &b/%command% &8&m-----").replace("%command%", context.getLabel()));
 
         for (RivenCommand child : visible) {
-            context.reply(ChatColor.AQUA + "/" + context.getLabel() + " " + child.name
-                    + (child.usage.isEmpty() ? "" : " " + ChatColor.GRAY + child.usage)
-                    + (child.description.isEmpty() ? "" : ChatColor.DARK_GRAY + " - " + ChatColor.WHITE + child.description));
+            final String command = "/" + context.getLabel() + " " + child.name;
+            final String hover = TextUtil.colorize("&b" + command + (child.usage.isEmpty() ? "" : " &7" + child.usage)
+                    + (child.description.isEmpty() ? "" : "\n&f" + child.description)
+                    + "\n" + context.message("riven.command.help-click", "&eClick to use it"));
+            final String action = child.usage.isEmpty() && child.minArgs == 0 && child.children.isEmpty() ? "run:" + command : "suggest:" + command + " ";
+
+            context.reply("{{" + clickable("&b" + command + (child.usage.isEmpty() ? "" : " &7" + child.usage)
+                    + (child.description.isEmpty() ? "" : " &8- &f" + child.description)) + "|" + action + "|hover:" + clickable(hover) + "}}");
         }
+    }
+
+    /**
+     * @param text text going inside a {@code {{...}}} block
+     * @return the same text without the characters that would break the block
+     */
+    static String clickable(String text) {
+        return text.replace("|", "/").replace("}}", "} }");
     }
 
     /**

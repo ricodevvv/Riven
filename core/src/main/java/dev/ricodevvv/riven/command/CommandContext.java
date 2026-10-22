@@ -1,6 +1,7 @@
 package dev.ricodevvv.riven.command;
 
 import dev.ricodevvv.riven.language.LanguageManager;
+import dev.ricodevvv.riven.text.FancyMessage;
 import dev.ricodevvv.riven.util.TextUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -202,8 +203,13 @@ public class CommandContext {
         }
     }
 
+    /**
+     * Sends a message. {@code {{text|run:/cmd|hover:...}}} blocks become clickable for players.
+     *
+     * @param message message
+     */
     public void reply(String message) {
-        this.sender.sendMessage(message);
+        FancyMessage.sendAuto(this.sender, message);
     }
 
     /**
@@ -213,7 +219,7 @@ public class CommandContext {
      * @param replacements placeholder and value pairs
      */
     public void replyKey(String key, Object... replacements) {
-        this.sender.sendMessage(this.language.get(this.sender instanceof Player ? (Player) this.sender : null, key, replacements));
+        this.reply(this.language.get(this.sender instanceof Player ? (Player) this.sender : null, key, replacements));
     }
 
     /**
