@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  */
 public class FancyMessage {
 
-    private static final Pattern BLOCK = Pattern.compile("\\{\\{(.+?)\\}\\}");
+    private static final Pattern BLOCK = Pattern.compile("\\{\\{(.+?)\\}\\}", Pattern.DOTALL);
 
     private final List<TextComponent> parts = new ArrayList<>();
 
